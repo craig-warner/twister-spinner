@@ -1,0 +1,722 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+"""
+Twister Spinner
+author: Craig Warner
+    This program spins the twister spinner for you, so you can play
+Twister with just two people.
+"""
+
+# External Imports
+import os
+import platform
+import sys
+import argparse
+import hjson
+import time
+import random 
+
+# import required module
+from pydub import AudioSegment
+from pydub.playback import play
+
+from enum import IntEnum
+
+# GUI  Imports
+from PyQt5 import (QtWidgets, QtCore)
+from PyQt5.QtWidgets import (
+    QMainWindow, QApplication,
+    QLabel, QCheckBox, QComboBox, QListWidget, QListWidgetItem, QLineEdit,
+    QLineEdit, QSpinBox, QDoubleSpinBox, QSlider,
+    QHBoxLayout, QVBoxLayout, QToolBar, QAction, QStatusBar,
+    QDialog, QDialogButtonBox, QFileDialog, QWidget, QProgressBar
+)
+from PyQt5.QtCore import ( 
+    Qt, QRect, QObject, QThread, pyqtSignal,QTimer
+)
+from PyQt5.QtGui import ( 
+    QPainter, QColor, QFont, QPixmap
+)
+
+# TwisterSpinner Imports  
+from version import __version__
+
+class Mode(IntEnum):
+    Banner = 1
+    Play = 2
+
+
+
+# Worker class for calculating an image
+class Worker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+
+    def Setup(self,sound):
+        self.sound = sound
+
+    def run(self):
+        """ Play Sound """
+        play(self.sound)
+        self.finished.emit()
+
+class CanvasWidget(QWidget):
+    def __init__(self,parent):
+        super(CanvasWidget, self).__init__(parent)
+        if args.verbose:
+            print("Canvas Widget")
+
+    def mousePressEvent(self,event):
+        self.point_set_x = event.pos().x()
+        self.point_set_y = event.pos().y()
+        if(args.verbose):
+            print("x: %d y: %d " % (self.point_seta,self.point_set_y))
+        self.repaint()
+        # FIXME: Add parent variable change
+
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Twister Spinner")
+
+        QBtn = QDialogButtonBox.Ok 
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        self.layout = QVBoxLayout()
+
+        message_str = "Twister Spinner\nVersion: %s\n" % (__version__)
+        message_str = message_str + "Copyright 2023 Craig Warner all rights reserved."
+        message = QLabel(message_str)
+        self.layout.addWidget(message)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+class SettingDialog(QDialog):
+    def __init__(self,win_text,msg_text):
+        super().__init__()
+
+        self.setWindowTitle(win_text)
+
+        QBtn = QDialogButtonBox.Ok 
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        self.layout = QVBoxLayout()
+        message = QLabel(msg_text)
+        self.layout.addWidget(message)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+class MainWindow(QMainWindow):
+
+    def __init__(self,topPath):
+        super(MainWindow, self).__init__()
+
+        # Interval Timer Tick
+        self.iTick = 0
+        # Other variables
+        self.iPass = True
+        self.bShowIntro = True,
+        self.canvasWidth = 1366
+        self.canvasHeight = 768
+        # Spinner Settings
+        self.minTicksBetweenSpins = 0
+        self.maxTicksBetweenSpins = 100
+        self.spinSeq = 0,
+        # Provocations
+        self.enableProvocations = False
+        self.provocationFrequency = 25 
+        # Part Type 4 is Spinner
+        self.partTypeWidth = [250, 250, 300, 300, 350]
+   	    self.partTypeHeight = [300, 300, 400, 400, 250]
+   	    self.smallParts = False
+        # This Spin
+        self.displayedBodyPart = False
+        self.curPart = 0
+        self.curSide = 0
+        self.curPartType = 0
+        self.curColor = 0
+        #// Delay for this Spin
+        self.curTicksOfDelay = 0
+        # Provoke this Spin
+        self.curProvocation = True
+        # Intro
+        self.bShowIntro = True
+    	# Spinner Frames
+   	    self.displayedTouchToStart = False
+        self.displayedSpinnerFrame = -1
+    	# Dots
+        self.numDots = 0
+    	# Sounds
+        self.soundOn = True,
+
+        # Init Images
+        self.loadImages(topPath)
+        # Init Sounds
+        self.loadSounds(topPath)
+        # Initialize Spinner Wiggle
+        self.initArt()
+        # Start the GUI 
+        self.initUI()
+        self.initBanner()
+        self.initTick()
+
+
+    def loadImages(self,topPath):
+        self.partImages = []
+        parts = ['left_foot','left_hand','right_foot','right_hand']
+        for pname in parts:
+            imgFileName = topPath+"/images/parts/white_"+pname+".png"
+            self.partImages.append(QPixmap(imgFileName))
+        # Spinner Images
+        self.spinnerImages = []
+        for si in range (0,48):
+            imgFileName = "%s/images/spinner/spinner_3d00%02d.png" % (topPath,si)
+            self.spinnerImages.append(QPixmap(imgFileName))
+        # Banner Images
+        self.bannerImages = []
+        imgFileName = topPath+"/images/banner/touchtostart.png"
+        self.bannerImages.append(QPixmap(imgFileName))
+
+    def loadSounds(self,topPath):
+        # side sounds
+        sides = ['left','right']
+        self.sideSounds = []
+        for ss in sides:
+            audioFileName = topPath+"/audio/"+ss+"f.mp3"
+            #print("DEBUG:",audioFileName)
+            self.sideSounds.append(AudioSegment.from_mp3(audioFileName))
+        # part sounds
+        parts= ['hand','foot']
+        self.partSounds = []
+        for ps in parts:
+            audioFileName = topPath+"/audio/"+ps+"f.mp3"
+            self.partSounds.append(AudioSegment.from_mp3(audioFileName))
+        # part sounds
+        self.colorSounds= []
+        colors= ['blue','green','red','yellow']
+        for cs in colors:
+            audioFileName = topPath+"/audio/"+cs+"f.mp3"
+            self.colorSounds.append(AudioSegment.from_mp3(audioFileName))
+        # provocations sounds
+        self.provocationSounds= []
+        provs = ['ButtsOffTheMat','Cheating','Fart','HoldOnNow','HoldPositionWhile',"KeepYour",'OneSecondILost']
+        for ps in provs:
+            audioFileName = topPath+"/audio/provocations/"+ps+".mp3"
+            self.provocationSounds.append(AudioSegment.from_mp3(audioFileName))
+
+    def initUI(self):
+        self.wid = QtWidgets.QWidget(self)
+        self.setCentralWidget(self.wid)
+        self.setGeometry(100,100,640,480) # FIXME: Fill the screen
+        self.setFixedSize(640,480)
+        self.setWindowTitle("Twister Spinner")
+        self.createActions()
+        self.addMenuToWindow()
+        self.addBody()
+        self.show()
+
+    def createActions(self):
+        self.playAction= QAction()
+        self.playAction.setText("Play")
+        self.settingsAction= QAction()
+        self.settingsAction.setText("Settings")
+        self.exitAppAction= QAction()
+        self.exitAppAction.setText("Quit")
+
+        self.aboutAction= QAction()
+        self.aboutAction.setText("About")
+
+    def addMenuToWindow(self):
+
+        menu = self.menuBar()
+        file_menu = menu.addMenu("&File")
+        file_menu.addAction(self.playAction)
+        file_menu.addAction(self.settingsAction)
+        file_menu.addSeparator()
+        file_menu.addAction(self.exitAppAction)
+
+        help_menu = menu.addMenu("&Help")
+        help_menu.addAction(self.aboutAction)
+
+        self.playAction.triggered.connect(self.doPlay)
+        self.settingsAction.triggered.connect(self.doSettings)
+        self.exitAppAction.triggered.connect(self.doExitApp)
+        self.aboutAction.triggered.connect(self.doAbout)
+
+    def doPlay(self):
+        global template
+        self.mode = Mode.Play
+        if(args.verbose):
+            print("Play")
+        play(self.partSounds[0])
+
+    def doSettings(self):
+        if(args.verbose):
+            print("Settings")
+
+    def doExitApp(self):
+        if(args.verbose):
+            print("Exit")
+        exit(0)
+
+    def doAbout(self):
+        if(args.verbose):
+           print("About")
+        dlg = AboutDialog(self)
+        dlg.exec()
+
+    def addBody(self):
+        vbox1 = QtWidgets.QVBoxLayout()
+        self.canvasWidget = CanvasWidget(self)
+        vbox1.addWidget(self.canvasWidget)
+        self.wid.setLayout(vbox1)
+
+    def initBanner(self):
+        self.mode = Mode.Banner
+        self.spinSeq = 0
+        # Draw Banner
+        self.DrawTouchScreenToStart()
+        # Draw Spinner and Dots
+
+    def DrawTouchScreenToStart(self):
+        # Draw Banner
+        qp = QPainter()
+        qp.drawPixmap(self.bannerImages[0])
+
+    def initTick(self):
+            # timer which repate function `display_time` every 1000ms (1s)
+            self.iTick = 0
+            timer = QTimer()
+            timer.timeout.connect(self.doTick)  # execute `display_time`
+            timer.setInterval(1000)  # 1000ms = 1s
+            timer.start()
+
+
+    def playSoundWithThread(self,part,partNum,side,sideNum,color,colorNum,provocation,provocationNum):
+        # Create a QThread object
+        self.thread = QThread()
+        # Create a worker object
+        self.worker = Worker()
+        # Move worker to the thread
+        self.worker.moveToThread(self.thread)
+        # Pass Arguments to Worker
+        if(part):
+            self.worker.Setup(self.partSound[partNum])
+        elif(side):
+            self.worker.Setup(self.sideSound[sideNum])
+        elif(color):
+            self.worker.Setup(self.colorSound[colorNum])
+        elif(provocation):
+            self.worker.Setup(self.colorSound[provocationNum])
+        else:
+            print("Error: Boad Sound")
+            exit(1)
+        # Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        # Start the thread
+        self.thread.start()
+        if args.verbose:
+            print("Thread Started")
+
+    def initArt(self):
+        self.wiggleSpinner = [0, 47, 46, 45, 44, 43, 42, 41, 40, 40, 41, 42, 43, 44, 45, 46, 47, 0, 1, 2, 3, 4, 5, 6, 7, 8,\
+            8, 7, 6, 5, 4, 3, 2, 1, 47, 46, 45, 44, 43, 42, 41, 40, 41, 42, 43, 44, 45, 46, 47, 0]
+        self.curColorRGB = ["rgb(248,9,43)", "rgb(9,19,248)", "rgb(14,248,9)", "rgb(228,248,9)"]
+
+    def ClearCanvas(self):
+        if args.verbose:
+            print("Clear Canvas")
+        # FIXME: Clear It 
+
+    def CalcSpinnerFrame(self):
+        modTick = (self.iTick % 48)
+        if (self.iTick == 0):
+            self.spinSeq = 0
+        elif modTick == 0:
+            self.spinSeq = random.randrange(0,4)
+        elif (self.spinSeq == 0):
+            # Still
+            return (0)
+        elif (self.spinSeq == 1):
+            # Spin 
+            return (modTick)
+        elif (self.spinSeq == 2):
+            # Reverse Spin 
+            return (47 - modTick)
+        elif (self.spinSeq == 3):
+            # x3 Spin 
+            return (((modTick * 3) % 48))
+        elif (self.spinSeq == 4): 
+            return (self.wiggleSpinner[modTick])
+
+    def DrawSpinnerFrame(self,frame):
+        qp = QPainter()
+        qp.drawPixmap(self.spinnerImages[frame])
+
+    #Draw Circles
+    def DrawColor (self,inColor,inPartType):
+        self.PutCircle(rndRadius,inColor,inPartType)
+
+    def PutCircle(self,inRadius,inColor,inPartType):
+        offScreen = True
+        offScreen = True
+        while((offScreen == True) or (overlap == True)):
+            rndX = self.RandX()
+            rndY = self.RandY()
+            offScreen = self.IsOffScreen(rndX,rndY,inRadius,inPartType);
+            overlap = self.IsOverlappingPart(rndX,rndY,inRadius,inPartType);
+        # Found a Spot
+        self.DrawCircle(rndX,rndY,inRadius,inColor);
+
+    def RandX(self):
+        return(random.randrange(0,self.canvasWidth))
+
+    def RandY(self):
+        return(random.randrange(0,self.canvasHeight))
+
+    def RandRadius(self):
+    	if(self.smallParts == True):
+        	return(random.randrange(0,25))
+        else: 
+        	return(random.randrange(0,50))
+
+    def IsOffScreen(self,ix,iy,iradius,inPartType):
+        return(False); 
+
+    def IsOverlappingPart(self,ix,iy,iradius,inPartType):
+        overlap = False
+        # Check X
+        if self.smallParts:
+            partWidth = self.partTypeWidth[inPartType] / 2 
+            partHeight = self.partTypeHeight[inPartType] / 2
+        else:
+            partWidth = self.partTypeWidth[inPartType]
+            partHeight = self.partTypeHeight[inPartType]
+        if ((ix + iradius) > self.CalcLeftForMiddle(partWidth) and \
+           ((ix - iradius) < (self.CalcLeftForMiddle(partWidth) + partWidth))): 
+            if(((iy + iradius) > self.CalcTopForMiddle(partHeight)) and \
+                ((iy - iradius) < (self.CalcTopForMiddle(partHeight) + partHeight))): 
+                overlap = True
+        return(overlap)
+
+    def DrawCircle(self,ix,iy,iradius,icolor):
+    
+        fillStyle = self.curColorRGB[icolor];
+        #c.beginPath();
+        #c.arc(ix,iy,iradius,0,2*Math.PI,true);
+        #c.closePath();
+        #c.fill();
+    # 
+    # Spin Functions
+    # 
+    def SelectSidePartColor(self):
+        # pick a side
+        self.curSide = random.randrange(0,2)
+        # pick a part
+        self.curPart = random.randrange(0,2)
+        # pick a color
+        self.curColor = random.randrane(0,4)
+        # Calc Part Type 
+        self.curPartType = self.curPart*2 + self.curSide
+
+    def SelectDelay(self):
+        # pick a delay
+        rnd = random.randrange(self.minTicksBetweenSpins,self.maxTicksBetweenSpins)
+        self.curTicksOfDelay = rnd 
+
+    def SelectProvocation(self):
+        # pick a delay
+        if(self.enableProvocations == False):
+            self.curProvocation = False
+        else:
+            rnd = random.randrange(0,100)
+            if(rnd < self.provocationFrequency):
+                self.curProvocation = True
+            else:
+                self.curProvocation = False
+
+    #//
+    #// Draw Image Functions
+    #//
+    function DrawPartType(inNum) {
+    
+        
+        var curX;
+        var curY;
+        var curWidth;
+        var curHeight;
+
+        // Caluculate CurWidth
+        if(spin.smallParts === true) {
+        	curWidth = spin.partTypeWidth[inNum]/2;
+        	curHeight = spin.partTypeHeight[inNum]/2;
+        }
+        else {
+            curWidth = spin.partTypeWidth[inNum];
+        	curHeight = spin.partTypeHeight[inNum];
+        }
+        // Caluculate upper left
+        curX = CalcLeftForMiddle(curWidth);	
+        curY = CalcTopForMiddle(curHeight);	   
+
+        var c = spin.canvas.getContext('2d');
+
+        if(inNum === 0) {
+            c.drawImage(spin.leftHandImage,curX,curY,curWidth,curHeight);
+        }
+        else if(inNum === 1) {
+            c.drawImage(spin.rightHandImage,curX,curY,curWidth,curHeight);
+        }
+        else if(inNum === 2) {
+            c.drawImage(spin.leftFootImage,curX,curY,curWidth,curHeight);
+        }
+        else if(inNum === 3) {
+            c.drawImage(spin.rightFootImage,curX,curY,curWidth,curHeight);
+        }
+    };
+    //
+    // Say Functions
+    //
+    function SayLeft() {
+    	if(spin.soundOn === true) {
+        	spin.leftSound.play();
+       }
+    };
+    function SayRight() {
+    	if(spin.soundOn === true) {
+        	spin.rightSound.play();
+       }
+    };
+    function SayHand() {
+    	if(spin.soundOn === true) {
+        	spin.handSound.play();
+       }
+    };
+    function SayFoot() {
+    	if(spin.soundOn === true) {
+        	spin.footSound.play();
+       }
+    };
+    function SayRed() {
+    	if(spin.soundOn === true) {
+        	spin.redSound.play();
+       }
+    };
+    function SayBlue() {
+    	if(spin.soundOn === true) {
+        	spin.blueSound.play();
+       }
+    };
+    function SayGreen() {
+    	if(spin.soundOn === true) {
+        	spin.greenSound.play();
+       }
+    };
+    function SayYellow() {
+    	if(spin.soundOn === true) {
+        	spin.yellowSound.play();
+       }
+    };
+    function SaySide(inSide) {
+        if(inSide === 0) {
+            SayLeft();
+        }
+        else {
+            SayRight();
+        }
+    };
+    function SayPart(inPart) {
+        if(inPart === 0) {
+            SayHand();
+        }
+        else {
+            SayFoot();
+        }
+    };
+    function SayColor(inColor) {
+        if(inColor === 0) {
+            SayRed();
+        }
+        else if(inColor === 1) {
+            SayBlue();
+        }
+        else if(inColor === 2) {
+            SayGreen();
+        }
+        else if(inColor === 3) {
+            SayYellow();
+        }
+    };
+    //
+    // Provocations
+    //
+    function SayAProvocation() {
+        var rnd;
+        if(spin.soundOn === true) {
+        	rnd = parseInt(Math.random()*7,10);
+        	spin.provocations[rnd].play();
+        }
+    };
+    //
+    // Touch events... All touch events come in here before being passed onward based on type
+    //
+    //function doTouch(e) {
+    // switch (touchType) {
+    //   case "start": touchStart(e); break;
+    //    case "end": touchEnd(e); break;
+    //    case "move": touchMove(e); break;
+    //    case "cancel": touchCancel(e); break;
+    //}
+    //};
+    function touchStart(e) {
+       // console.log("touchStart");
+    };
+    function touchEnd(e) {
+       // console.log("touchEnd");
+        DoBump();
+    };
+    function touchMove(e) {
+    };
+    function touchCancel(e) {
+    };
+    function DoTilt (e) {
+    	SetCanvasSize();
+    	DoBump();
+    };
+    function DoTouch () {
+    	DoBump();
+    };
+    function DoBump () {
+    	ClearCanvas();
+        if(spin.bShowIntro === true) {
+            spin.bShowIntro = false;
+        }
+        else {
+            spin.bShowIntro = true;
+        }
+        spin.iTick=0; 
+    };
+    function DoIntro () {
+        spin.bShowIntro = true;
+        spin.iTick=0; 
+    };
+    // onSuccess Callback
+    //
+    function OnSuccessAudio() {
+      //console.log("playAudio():Audio Success");
+    };
+
+    // onError Callback 
+    //
+    function OnErrorAudio(error) {
+	alert('code: '    + error.code    + '\n' + 
+	      'message: ' + error.message + '\n');
+    };
+    
+
+    def DoTick(self):
+
+        if self.mode == Mode.Banner:
+            if(self.iTick == 0):
+                self.ClearCanvas(); 
+                # Touch Screen to Start
+                self.DrawTouchScreenToStart()
+            #Draw Spinner
+            spinnerFrame = self.CalcSpinnerFrame()
+            self.DrawSpinner(spinnerFrame);
+            # Draw Some Dots
+            rndColor = random.randrange(0,4)
+            self.DrawColor(rndColor,4);
+            #Advance Time
+            self.iTick=self.iTick+1;
+            if(self.iTick >= (48*3)):
+                self.iTick = 0;
+            if args.verbose: 
+                print("Intro Tick")
+        else:
+            if self.iTick == 0:
+                #Clear Canvas
+                self.ClearCanvas() 
+                # Determine Spin Results
+                self.SelectSidePartColor()
+                // Determine Post Spin Delay
+                SelectDelay();
+                // Determine Provocation 
+                SelectProvocation();
+                // Say Side 
+                //console.log("SaySideBegin:",this.tickCount);
+                SaySide(spin.curSide);
+                //console.log("SaySideEnd:",this.tickCount);
+            }
+            else if(spin.iTick === 15) {
+                DrawPartType(spin.curPartType);
+                SayPart(spin.curPart);
+            }
+            else if(spin.iTick === 40) {
+                SayColor(spin.curColor);
+                DrawColor(spin.curColor,spin.curPartType);
+            }
+            else if(spin.iTick === 55) {
+                if(spin.curProvocation === true) {
+                    SayAProvocation();
+                }
+            }
+            else if((spin.iTick > 40) & 
+                ((spin.iTick % 2) === 0)) {
+                // Draw Another Dot
+                DrawColor(spin.curColor,spin.curPartType);
+            }
+            spin.iTick=spin.iTick+1;
+            if(spin.curProvocation === true) {
+                if(spin.iTick >= (spin.curTicksOfDelay + 110)) {
+                    spin.iTick = 0;
+                }
+            }
+            else {
+                if(spin.iTick >= (spin.curTicksOfDelay + 60)) {
+                    spin.iTick = 0;
+                }
+            }
+           // console.log("Running Tick", iTick);
+        }
+    };
+
+#
+# Helper Functions 
+#
+
+def playTwister():
+    print("Does not make sense to run without GUI")
+    exit(1)
+
+#
+# mbg Start
+#
+topPath = "/home/craigwarner/Programming/tv1/twister-spinner"
+#topPath = "/snap/twister-spinner/current"
+all_images = []
+
+# CLI Parser
+parser = argparse.ArgumentParser(description='Twister Spinner')
+parser.add_argument("-v", "--verbose", help="Increase output verbosity",action ="store_true") 
+parser.add_argument("--nogui", help="No Graphical User Interface",action ="store_true") 
+parser.add_argument('-V', '--version', action='version', version="%(prog)s ("+__version__+")")
+args = parser.parse_args()
+
+# Gui or Not
+if(args.nogui):
+    playTwister()
+else:
+    app = QApplication(sys.argv)
+    w = MainWindow(topPath)
+    w.show()
+    app.exec()
