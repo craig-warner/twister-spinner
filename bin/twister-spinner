@@ -307,10 +307,11 @@ class MainWindow(QMainWindow):
     def initTick(self):
         # timer which repate function `display_time` every 1000ms (1s)
         self.iTick = 0
-        timer = QTimer()
-        timer.timeout.connect(self.DoTick)  # execute `display_time`
-        timer.setInterval(1000)  # 1000ms = 1s
-        timer.start()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.DoTick)  # execute `display_time`
+#        self.timer.setInterval(1000)  # 1000ms = 1s
+        self.timer.setInterval(100)  # 1000ms = 1s
+        self.timer.start()
 
 
     def playSoundWithThread(self,part,partNum,side,sideNum,color,colorNum,provocation,provocationNum):
@@ -390,6 +391,7 @@ class MainWindow(QMainWindow):
 
     #Draw Circles
     def DrawColor (self,inColor,inPartType):
+        rndRadius = self.RandRadius()
         self.PutCircle(rndRadius,inColor,inPartType)
 
     def PutCircle(self,inRadius,inColor,inPartType):
@@ -481,7 +483,7 @@ class MainWindow(QMainWindow):
         # pick a part
         self.curPart = random.randrange(0,2)
         # pick a color
-        self.curColor = random.randrane(0,4)
+        self.curColor = random.randrange(0,4)
         # Calc Part Type 
         self.curPartType = self.curPart*2 + self.curSide
 
