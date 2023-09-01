@@ -36,7 +36,7 @@ from PyQt5.QtCore import (
     Qt, QRect, QObject, QThread, pyqtSignal,QTimer
 )
 from PyQt5.QtGui import ( 
-    QPainter, QColor, QFont, QPixmap
+    QPainter, QColor, QFont, QPixmap, QPen
 )
 
 # TwisterSpinner Imports  
@@ -61,19 +61,19 @@ class Worker(QObject):
         play(self.sound)
         self.finished.emit()
 
-class CanvasWidget(QWidget):
-    def __init__(self,parent):
-        super(CanvasWidget, self).__init__(parent)
-        if args.verbose:
-            print("Canvas Widget")
-
-    def mousePressEvent(self,event):
-        self.point_set_x = event.pos().x()
-        self.point_set_y = event.pos().y()
-        if(args.verbose):
-            print("x: %d y: %d " % (self.point_seta,self.point_set_y))
-        self.repaint()
-        # FIXME: Add parent variable change
+#class CanvasWidget(QWidget):
+#    def __init__(self,parent):
+#        super(CanvasWidget, self).__init__(parent)
+#        if args.verbose:
+#            print("Canvas Widget")
+#
+#    def mousePressEvent(self,event):
+#        self.point_set_x = event.pos().x()
+#        self.point_set_y = event.pos().y()
+#        if(args.verbose):
+#            print("x: %d y: %d " % (self.point_seta,self.point_set_y))
+#        self.repaint()
+#        # FIXME: Add parent variable change
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
@@ -114,16 +114,18 @@ class SettingDialog(QDialog):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self,topPath):
+    def __init__(self,topPath,width,height):
         super(MainWindow, self).__init__()
 
+        self.screenWidth = width
+        self.screenHeight= height 
         # Interval Timer Tick
         self.iTick = 0
         # Other variables
         self.iPass = True
         self.bShowIntro = True,
-        self.canvasWidth = 1366
-        self.canvasHeight = 768
+        self.canvasWidth = self.screenWidth -100  
+        self.canvasHeight = self.screenHeight -100 
         # Spinner Settings
         self.minTicksBetweenSpins = 0
         self.maxTicksBetweenSpins = 100
@@ -133,8 +135,8 @@ class MainWindow(QMainWindow):
         self.provocationFrequency = 25 
         # Part Type 4 is Spinner
         self.partTypeWidth = [250, 250, 300, 300, 350]
-   	    self.partTypeHeight = [300, 300, 400, 400, 250]
-   	    self.smallParts = False
+        self.partTypeHeight = [300, 300, 400, 400, 250]
+        self.smallParts = False
         # This Spin
         self.displayedBodyPart = False
         self.curPart = 0
@@ -147,12 +149,12 @@ class MainWindow(QMainWindow):
         self.curProvocation = True
         # Intro
         self.bShowIntro = True
-    	# Spinner Frames
-   	    self.displayedTouchToStart = False
+       # Spinner Frames
+        self.displayedTouchToStart = False
         self.displayedSpinnerFrame = -1
-    	# Dots
+       # Dots
         self.numDots = 0
-    	# Sounds
+       # Sounds
         self.soundOn = True,
 
         # Init Images
@@ -170,6 +172,8 @@ class MainWindow(QMainWindow):
     def loadImages(self,topPath):
         self.partImages = []
         parts = ['left_foot','left_hand','right_foot','right_hand']
+        if args.verbose:
+            print("Loading Images...")
         for pname in parts:
             imgFileName = topPath+"/images/parts/white_"+pname+".png"
             self.partImages.append(QPixmap(imgFileName))
@@ -185,6 +189,8 @@ class MainWindow(QMainWindow):
 
     def loadSounds(self,topPath):
         # side sounds
+        if args.verbose:
+            print("Loading Sounds...")
         sides = ['left','right']
         self.sideSounds = []
         for ss in sides:
@@ -213,8 +219,8 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.wid = QtWidgets.QWidget(self)
         self.setCentralWidget(self.wid)
-        self.setGeometry(100,100,640,480) # FIXME: Fill the screen
-        self.setFixedSize(640,480)
+        self.setGeometry(0,0,self.canvasWidth,self.canvasHeight) 
+        self.setFixedSize(self.canvasWidth,self.canvasHeight)
         self.setWindowTitle("Twister Spinner")
         self.createActions()
         self.addMenuToWindow()
@@ -273,8 +279,14 @@ class MainWindow(QMainWindow):
 
     def addBody(self):
         vbox1 = QtWidgets.QVBoxLayout()
-        self.canvasWidget = CanvasWidget(self)
-        vbox1.addWidget(self.canvasWidget)
+
+        self.label = QtWidgets.QLabel()
+        canvas = QPixmap(self.canvasWidth, self.canvasHeight)
+        canvas.fill(Qt.black)
+        self.label.setPixmap(canvas)
+
+        vbox1.addWidget(self.label)
+
         self.wid.setLayout(vbox1)
 
     def initBanner(self):
@@ -286,16 +298,19 @@ class MainWindow(QMainWindow):
 
     def DrawTouchScreenToStart(self):
         # Draw Banner
-        qp = QPainter()
-        qp.drawPixmap(self.bannerImages[0])
+        qp = QPainter(self.label.pixmap())
+        #qp.begin(self)
+        ul_x = (self.canvasWidth//2) - (271 // 2)
+        ul_y = (self.canvasHeight//2) - (234 // 2)
+        qp.drawPixmap(ul_x,ul_y,self.bannerImages[0])
 
     def initTick(self):
-            # timer which repate function `display_time` every 1000ms (1s)
-            self.iTick = 0
-            timer = QTimer()
-            timer.timeout.connect(self.doTick)  # execute `display_time`
-            timer.setInterval(1000)  # 1000ms = 1s
-            timer.start()
+        # timer which repate function `display_time` every 1000ms (1s)
+        self.iTick = 0
+        timer = QTimer()
+        timer.timeout.connect(self.DoTick)  # execute `display_time`
+        timer.setInterval(1000)  # 1000ms = 1s
+        timer.start()
 
 
     def playSoundWithThread(self,part,partNum,side,sideNum,color,colorNum,provocation,provocationNum):
@@ -341,8 +356,10 @@ class MainWindow(QMainWindow):
         modTick = (self.iTick % 48)
         if (self.iTick == 0):
             self.spinSeq = 0
+            return (0)
         elif modTick == 0:
             self.spinSeq = random.randrange(0,4)
+            return (0)
         elif (self.spinSeq == 0):
             # Still
             return (0)
@@ -358,9 +375,18 @@ class MainWindow(QMainWindow):
         elif (self.spinSeq == 4): 
             return (self.wiggleSpinner[modTick])
 
+    def CalcLeftForMiddle(self,inWidth):
+        return((self.canvasWidth//2) - (inWidth//2))
+
+    def CalcTopForMiddle(self,inHeight):
+        return ((self.canvasHeight // 2) - (inHeight//2))
+
     def DrawSpinnerFrame(self,frame):
-        qp = QPainter()
-        qp.drawPixmap(self.spinnerImages[frame])
+        qp = QPainter(self.label.pixmap())
+        ul_x = (self.canvasWidth//2) - (347 // 2)
+        ul_y = (self.canvasHeight//2) - (111 // 2)
+        #print("Spinner Frame:",frame,ul_x,ul_y)
+        qp.drawPixmap(ul_x,ul_y,self.spinnerImages[frame])
 
     #Draw Circles
     def DrawColor (self,inColor,inPartType):
@@ -372,10 +398,10 @@ class MainWindow(QMainWindow):
         while((offScreen == True) or (overlap == True)):
             rndX = self.RandX()
             rndY = self.RandY()
-            offScreen = self.IsOffScreen(rndX,rndY,inRadius,inPartType);
-            overlap = self.IsOverlappingPart(rndX,rndY,inRadius,inPartType);
+            offScreen = self.IsOffScreen(rndX,rndY,inRadius,inPartType)
+            overlap = self.IsOverlappingPart(rndX,rndY,inRadius,inPartType)
         # Found a Spot
-        self.DrawCircle(rndX,rndY,inRadius,inColor);
+        self.DrawCircle(rndX,rndY,inRadius,inColor)
 
     def RandX(self):
         return(random.randrange(0,self.canvasWidth))
@@ -384,11 +410,11 @@ class MainWindow(QMainWindow):
         return(random.randrange(0,self.canvasHeight))
 
     def RandRadius(self):
-    	if(self.smallParts == True):
-        	return(random.randrange(0,25))
+        if(self.smallParts == True):
+            return(random.randrange(0,25))
         else: 
-        	return(random.randrange(0,50))
-
+            return(random.randrange(0,50))
+            
     def IsOffScreen(self,ix,iy,iradius,inPartType):
         return(False); 
 
@@ -396,8 +422,8 @@ class MainWindow(QMainWindow):
         overlap = False
         # Check X
         if self.smallParts:
-            partWidth = self.partTypeWidth[inPartType] / 2 
-            partHeight = self.partTypeHeight[inPartType] / 2
+            partWidth = self.partTypeWidth[inPartType] // 2 
+            partHeight = self.partTypeHeight[inPartType] // 2
         else:
             partWidth = self.partTypeWidth[inPartType]
             partHeight = self.partTypeHeight[inPartType]
@@ -409,8 +435,10 @@ class MainWindow(QMainWindow):
         return(overlap)
 
     def DrawCircle(self,ix,iy,iradius,icolor):
-    
-        fillStyle = self.curColorRGB[icolor];
+        qp = QPainter(self.label.pixmap())
+        qp.setPen(QPen(Qt.blue, 5))
+        qp.drawEllipse(ix,iy, iradius//2, iradius//2)
+        #fillStyle = self.curColorRGB[icolor];
         #c.beginPath();
         #c.arc(ix,iy,iradius,0,2*Math.PI,true);
         #c.closePath();
@@ -444,187 +472,171 @@ class MainWindow(QMainWindow):
             else:
                 self.curProvocation = False
 
+    # 
+    # Spin Functions
+    # 
+    def SelectSidePartColor(self):
+        # pick a side
+        self.curSide = random.randrange(0,2)
+        # pick a part
+        self.curPart = random.randrange(0,2)
+        # pick a color
+        self.curColor = random.randrane(0,4)
+        # Calc Part Type 
+        self.curPartType = self.curPart*2 + self.curSide
+
+    def SelectDelay(self):
+        # pick a delay
+        rnd = random.randrange(self.minTicksBetweenSpins,self.maxTicksBetweenSpins)
+        self.curTicksOfDelay = rnd 
+
+    def SelectProvocation(self):
+        # pick a delay
+        if(self.enableProvocations == False):
+            self.curProvocation = False
+        else:
+            rnd = random.randrange(0,100)
+            if(rnd < self.provocationFrequency):
+                self.curProvocation = True
+            else:
+                self.curProvocation = False
+
     #//
     #// Draw Image Functions
     #//
-    function DrawPartType(inNum) {
-    
+    def DrawPartType(self,inNum):
         
-        var curX;
-        var curY;
-        var curWidth;
-        var curHeight;
+        # Caluculate CurWidth
+        if(self.smallParts == True):
+            curWidth = self.partTypeWidth[inNum]/2
+        else:
+            curWidth = self.partTypeWidth[inNum]
+        curHeight = self.partTypeHeight[inNum]
+        #// Caluculate upper left
+        curX = self.CalcLeftForMiddle(curWidth)   
+        curY = self.CalcTopForMiddle(curHeight)     
 
-        // Caluculate CurWidth
-        if(spin.smallParts === true) {
-        	curWidth = spin.partTypeWidth[inNum]/2;
-        	curHeight = spin.partTypeHeight[inNum]/2;
-        }
-        else {
-            curWidth = spin.partTypeWidth[inNum];
-        	curHeight = spin.partTypeHeight[inNum];
-        }
-        // Caluculate upper left
-        curX = CalcLeftForMiddle(curWidth);	
-        curY = CalcTopForMiddle(curHeight);	   
+        #var c = spin.canvas.getContext('2d');
 
-        var c = spin.canvas.getContext('2d');
+        if inNum == 0:
+            c.drawImage(self.leftHandImage,curX,curY,curWidth,curHeight)
+        elif(inNum == 1):
+            c.drawImage(self.rightHandImage,curX,curY,curWidth,curHeight)
+        elif(inNum == 2):
+            c.drawImage(self.leftFootImage,curX,curY,curWidth,curHeight)
+        elif(inNum == 3):
+            c.drawImage(self.rightFootImage,curX,curY,curWidth,curHeight)
+    #//
+    #// Say Functions
+    #//
+    def SayLeft(self):
+       if self.soundOn == True:
+            # Fixme
+            play(self.leftSound)
 
-        if(inNum === 0) {
-            c.drawImage(spin.leftHandImage,curX,curY,curWidth,curHeight);
-        }
-        else if(inNum === 1) {
-            c.drawImage(spin.rightHandImage,curX,curY,curWidth,curHeight);
-        }
-        else if(inNum === 2) {
-            c.drawImage(spin.leftFootImage,curX,curY,curWidth,curHeight);
-        }
-        else if(inNum === 3) {
-            c.drawImage(spin.rightFootImage,curX,curY,curWidth,curHeight);
-        }
-    };
-    //
-    // Say Functions
-    //
-    function SayLeft() {
-    	if(spin.soundOn === true) {
-        	spin.leftSound.play();
-       }
-    };
-    function SayRight() {
-    	if(spin.soundOn === true) {
-        	spin.rightSound.play();
-       }
-    };
-    function SayHand() {
-    	if(spin.soundOn === true) {
-        	spin.handSound.play();
-       }
-    };
-    function SayFoot() {
-    	if(spin.soundOn === true) {
-        	spin.footSound.play();
-       }
-    };
-    function SayRed() {
-    	if(spin.soundOn === true) {
-        	spin.redSound.play();
-       }
-    };
-    function SayBlue() {
-    	if(spin.soundOn === true) {
-        	spin.blueSound.play();
-       }
-    };
-    function SayGreen() {
-    	if(spin.soundOn === true) {
-        	spin.greenSound.play();
-       }
-    };
-    function SayYellow() {
-    	if(spin.soundOn === true) {
-        	spin.yellowSound.play();
-       }
-    };
-    function SaySide(inSide) {
-        if(inSide === 0) {
-            SayLeft();
-        }
-        else {
-            SayRight();
-        }
-    };
-    function SayPart(inPart) {
-        if(inPart === 0) {
-            SayHand();
-        }
-        else {
-            SayFoot();
-        }
-    };
-    function SayColor(inColor) {
-        if(inColor === 0) {
-            SayRed();
-        }
-        else if(inColor === 1) {
-            SayBlue();
-        }
-        else if(inColor === 2) {
-            SayGreen();
-        }
-        else if(inColor === 3) {
-            SayYellow();
-        }
-    };
-    //
-    // Provocations
-    //
-    function SayAProvocation() {
-        var rnd;
-        if(spin.soundOn === true) {
-        	rnd = parseInt(Math.random()*7,10);
-        	spin.provocations[rnd].play();
-        }
-    };
-    //
-    // Touch events... All touch events come in here before being passed onward based on type
-    //
-    //function doTouch(e) {
-    // switch (touchType) {
-    //   case "start": touchStart(e); break;
-    //    case "end": touchEnd(e); break;
-    //    case "move": touchMove(e); break;
-    //    case "cancel": touchCancel(e); break;
-    //}
-    //};
-    function touchStart(e) {
-       // console.log("touchStart");
-    };
-    function touchEnd(e) {
-       // console.log("touchEnd");
-        DoBump();
-    };
-    function touchMove(e) {
-    };
-    function touchCancel(e) {
-    };
-    function DoTilt (e) {
-    	SetCanvasSize();
-    	DoBump();
-    };
-    function DoTouch () {
-    	DoBump();
-    };
-    function DoBump () {
-    	ClearCanvas();
-        if(spin.bShowIntro === true) {
-            spin.bShowIntro = false;
-        }
-        else {
-            spin.bShowIntro = true;
-        }
-        spin.iTick=0; 
-    };
-    function DoIntro () {
-        spin.bShowIntro = true;
-        spin.iTick=0; 
-    };
-    // onSuccess Callback
-    //
-    function OnSuccessAudio() {
-      //console.log("playAudio():Audio Success");
-    };
+    def SayRight(self):
+       if self.soundOn == True:
+            play (self.rightSound)
 
-    // onError Callback 
-    //
-    function OnErrorAudio(error) {
-	alert('code: '    + error.code    + '\n' + 
-	      'message: ' + error.message + '\n');
-    };
-    
+    def SayHand(self):
+       if self.soundOn == True:
+            play(self.handSound)
+    def SayFoot(self):
+       if self.soundOn == True:
+            play(self.footSound)
+    def SayRed(self):
+       if(self.soundOn == True):
+            play(self.redSound)
+    def SayBlue(self):
+       if(self.soundOn == True):
+            play(self.blueSound)
+    def SayGreen(self):
+       if(self.soundOn == True):
+            play(self.greenSound)
+    def SayYellow(self):
+       if(self.soundOn == True):
+            play(self.yellowSound)
+    def SaySide(self,inSide):
+        if(inSide == 0):
+            self.SayLeft()
+        else: 
+            self.SayRight()
+    def SayPart(self,inPart):
+        if(self.inPart == 0):
+            self.SayHand()
+        else:
+            self.SayFoot()
+    def SayColor(self,inColor):
+        if(inColor == 0):
+            self.SayRed()
+        elif(inColor == 1):
+            self.SayBlue()
+        elif(inColor == 2):
+            self.SayGreen()
+        elif(inColor == 3):
+            self.SayYellow()
+    #//
+    #// Provocations
+    #//
+    def SayAProvocation(self):
+        #var rnd;
+        if(self.soundOn == True):
+            rnd = random.randrange(0,7)
+            play(self.provocations[rnd])
+    #//
+    #// Touch events... All touch events come in here before being passed onward based on type
+    #//
+    #//def doTouch(e) {
+    #// switch (touchType) {
+    #//   case "start": touchStart(e); break;
+    #//    case "end": touchEnd(e); break;
+    #//    case "move": touchMove(e); break;
+    #//    case "cancel": touchCancel(e); break;
+    #//}
+    #//};
+    #def touchStart(e) {
+    #   // console.log("touchStart");
+    #};
+    #def touchEnd(e) {
+    #   // console.log("touchEnd");
+    #    DoBump();
+    #};
+    #def touchMove(e) {
+    #};
+    #def touchCancel(e) {
+    #};
+    #def DoTilt (e) {
+    #   SetCanvasSize();
+    #   DoBump();
+    #};
+    #def DoTouch () {
+    #   DoBump();
+    #};
+    def DoBump (self):
+        self.ClearCanvas()
+        if(self.bShowIntro == True):
+            self.bShowIntro = False
+        else:
+            self.bShowIntro = True
+        self.iTick=0 
+    def DoIntro (self):
+        self.bShowIntro = True
+        self.iTick=0
+    #// onSuccess Callback
+    #//
+    #def OnSuccessAudio() {
+    #  //console.log("playAudio():Audio Success");
+    #};
+    #
+    #// onError Callback 
+    #//
+    #def OnErrorAudio(error) {
+    #alert('code: '    + error.code    + '\n' + 
+    #      'message: ' + error.message + '\n');
+    #};
 
     def DoTick(self):
-
+        print("Tick")
         if self.mode == Mode.Banner:
             if(self.iTick == 0):
                 self.ClearCanvas(); 
@@ -632,14 +644,14 @@ class MainWindow(QMainWindow):
                 self.DrawTouchScreenToStart()
             #Draw Spinner
             spinnerFrame = self.CalcSpinnerFrame()
-            self.DrawSpinner(spinnerFrame);
+            self.DrawSpinnerFrame(spinnerFrame)
             # Draw Some Dots
             rndColor = random.randrange(0,4)
-            self.DrawColor(rndColor,4);
+            self.DrawColor(rndColor,4)
             #Advance Time
-            self.iTick=self.iTick+1;
+            self.iTick=self.iTick+1
             if(self.iTick >= (48*3)):
-                self.iTick = 0;
+                self.iTick = 0
             if args.verbose: 
                 print("Intro Tick")
         else:
@@ -648,48 +660,34 @@ class MainWindow(QMainWindow):
                 self.ClearCanvas() 
                 # Determine Spin Results
                 self.SelectSidePartColor()
-                // Determine Post Spin Delay
-                SelectDelay();
-                // Determine Provocation 
-                SelectProvocation();
-                // Say Side 
-                //console.log("SaySideBegin:",this.tickCount);
-                SaySide(spin.curSide);
-                //console.log("SaySideEnd:",this.tickCount);
-            }
-            else if(spin.iTick === 15) {
-                DrawPartType(spin.curPartType);
-                SayPart(spin.curPart);
-            }
-            else if(spin.iTick === 40) {
-                SayColor(spin.curColor);
-                DrawColor(spin.curColor,spin.curPartType);
-            }
-            else if(spin.iTick === 55) {
-                if(spin.curProvocation === true) {
-                    SayAProvocation();
-                }
-            }
-            else if((spin.iTick > 40) & 
-                ((spin.iTick % 2) === 0)) {
-                // Draw Another Dot
-                DrawColor(spin.curColor,spin.curPartType);
-            }
-            spin.iTick=spin.iTick+1;
-            if(spin.curProvocation === true) {
-                if(spin.iTick >= (spin.curTicksOfDelay + 110)) {
-                    spin.iTick = 0;
-                }
-            }
-            else {
-                if(spin.iTick >= (spin.curTicksOfDelay + 60)) {
-                    spin.iTick = 0;
-                }
-            }
-           // console.log("Running Tick", iTick);
-        }
-    };
-
+                # Determine Post Spin Delay
+                self.SelectDelay()
+                # Determine Provocation 
+                self.SelectProvocation()
+                # Say Side 
+                #//console.log("SaySideBegin:",this.tickCount);
+                self.SaySide(self.curSide)
+                #//console.log("SaySideEnd:",this.tickCount);
+            elif(self.iTick == 15):
+                self.DrawPartType(self.curPartType)
+                self.SayPart(self.curPart)
+            elif(self.iTick == 40):
+                self.SayColor(self.curColor)
+                self.DrawColor(self.curColor,self.curPartType)
+            elif(self.iTick == 55):
+                if(self.curProvocation == True):
+                    self.SayAProvocation()
+            elif((self.iTick > 40) and ((self.iTick % 2) == 0)):
+                #// Draw Another Dot
+                self.DrawColor(self.curColor,self.curPartType)
+            # Advance Tick
+            self.iTick=self.iTick+1
+            if(self.curProvocation == True):
+                if(self.iTick >= (self.curTicksOfDelay + 110)):
+                    self.iTick = 0
+            else:
+                if(self.iTick >= (self.curTicksOfDelay + 60)):
+                    self.iTick = 0
 #
 # Helper Functions 
 #
@@ -717,6 +715,15 @@ if(args.nogui):
     playTwister()
 else:
     app = QApplication(sys.argv)
-    w = MainWindow(topPath)
+    screen = app.primaryScreen()
+    if args.verbose:
+        print('Screen: %s' % screen.name())
+    size = screen.size()
+    if args.verbose:
+        print('Size: %d x %d' % (size.width(), size.height()))
+    rect = screen.availableGeometry()
+    if args.verbose:
+        print('Available: %d x %d' % (rect.width(), rect.height()))
+    w = MainWindow(topPath,rect.width(),rect.height())
     w.show()
     app.exec()
