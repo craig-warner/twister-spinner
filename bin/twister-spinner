@@ -61,19 +61,49 @@ class Worker(QObject):
         play(self.sound)
         self.finished.emit()
 
-#class CanvasWidget(QWidget):
-#    def __init__(self,parent):
-#        super(CanvasWidget, self).__init__(parent)
-#        if args.verbose:
-#            print("Canvas Widget")
-#
-#    def mousePressEvent(self,event):
-#        self.point_set_x = event.pos().x()
-#        self.point_set_y = event.pos().y()
-#        if(args.verbose):
-#            print("x: %d y: %d " % (self.point_seta,self.point_set_y))
-#        self.repaint()
-#        # FIXME: Add parent variable change
+class CanvasWidget(QWidget):
+    def __init__(self,parent,width,height):
+        super(CanvasWidget, self).__init__(parent)
+        if args.verbose:
+            print("Canvas Widget")
+        self.setGeometry(QRect(0, 0, width, height))
+        self.parent = parent
+
+
+        self.label = QtWidgets.QLabel()
+        self.cvs = QPixmap(width, height)
+        self.cvs.fill(Qt.black)
+        self.label.setPixmap(self.cvs)
+
+        self.drawDot = False
+        self.dot_x = 0
+        self.dot_y = 0
+        self.dot_radius = 0
+
+    def paintEvent(self, e):
+        #qp = QPainter(self.label.pixmap())
+        qp = QPainter()
+        qp.begin(self)
+        if self.drawDot:
+            qp.setPen(QPen(Qt.blue, 5))
+            qp.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
+            self.drawDot = False
+
+    def mousePressEvent(self,event):
+        self.point_set_x = event.pos().x()
+        self.point_set_y = event.pos().y()
+        if(args.verbose):
+            print("x: %d y: %d " % (self.point_seta,self.point_set_y))
+        self.repaint()
+
+    def SetupDrawDot(self,x,y,radius,color):
+        self.drawDot = True
+        self.dot_x = x 
+        self.dot_y = y 
+        self.dot_radius = radius 
+        self.dot_colot = color 
+        self.repaint()
+
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
@@ -280,13 +310,13 @@ class MainWindow(QMainWindow):
     def addBody(self):
         vbox1 = QtWidgets.QVBoxLayout()
 
-        self.label = QtWidgets.QLabel()
-        canvas = QPixmap(self.canvasWidth, self.canvasHeight)
-        canvas.fill(Qt.black)
-        self.label.setPixmap(canvas)
+        #self.label = QtWidgets.QLabel()
+        #self.canvas = QPixmap(self.canvasWidth, self.canvasHeight)
+        #self.canvas.fill(Qt.black)
+        #self.label.setPixmap(self.canvas)
 
-        vbox1.addWidget(self.label)
-
+        self.canvas = CanvasWidget(self,self.canvasWidth, self.canvasHeight)
+        vbox1.addWidget(self.canvas)
         self.wid.setLayout(vbox1)
 
     def initBanner(self):
@@ -297,12 +327,14 @@ class MainWindow(QMainWindow):
         # Draw Spinner and Dots
 
     def DrawTouchScreenToStart(self):
+        print("DTS")
         # Draw Banner
-        qp = QPainter(self.label.pixmap())
-        #qp.begin(self)
-        ul_x = (self.canvasWidth//2) - (271 // 2)
-        ul_y = (self.canvasHeight//2) - (234 // 2)
-        qp.drawPixmap(ul_x,ul_y,self.bannerImages[0])
+        #self.qp = QPainter(self.label.pixmap())
+        #ul_x = (self.canvasWidth//2) - (271 // 2)
+        #ul_y = (self.canvasHeight//2) - (234 // 2)
+        #self.qp.begin(self)
+        #self.qp.drawPixmap(ul_x,ul_y,self.bannerImages[0])
+#        qp.end()
 
     def initTick(self):
         # timer which repate function `display_time` every 1000ms (1s)
@@ -310,7 +342,7 @@ class MainWindow(QMainWindow):
         self.timer = QTimer()
         self.timer.timeout.connect(self.DoTick)  # execute `display_time`
 #        self.timer.setInterval(1000)  # 1000ms = 1s
-        self.timer.setInterval(100)  # 1000ms = 1s
+        self.timer.setInterval(1000)  # 1000ms = 1s
         self.timer.start()
 
 
@@ -382,12 +414,40 @@ class MainWindow(QMainWindow):
     def CalcTopForMiddle(self,inHeight):
         return ((self.canvasHeight // 2) - (inHeight//2))
 
+    def paintEvent(self, event):    
+        print("Paint Event")
+        #qp = QPainter()
+        #qp = QPainter(self.label.pixmap())
+        #qp = QPainter(self.label.pixmap())
+        #qp.begin(self)
+        #ix = self.iTick +20
+        #iy = 40 
+        #iradius = 20 
+        #qp.setPen(QPen(Qt.blue, 5))
+        #qp.drawEllipse(ix,iy, iradius//2, iradius//2)
+#        qp = QPainter(self.label.pixmap())
+        #ul_x = (self.canvasWidth//2) - (347 // 2)
+        #ul_y = (self.canvasHeight//2) - (111 // 2)
+        #print("Spinner Frame:",self.spinnerFrame,ul_x,ul_y)
+
+#        qp.begin(self)
+#        qp.drawPixmap(ul_x,ul_y,self.spinnerImages[self.spinnerFrame])
+        #self.label.setPixmap(self.canvas)
+        #self.label.drawPixmap(ul_x,ul_y,self.spinnerImages[2])
+#        qp.end()
+
+
     def DrawSpinnerFrame(self,frame):
-        qp = QPainter(self.label.pixmap())
-        ul_x = (self.canvasWidth//2) - (347 // 2)
-        ul_y = (self.canvasHeight//2) - (111 // 2)
-        #print("Spinner Frame:",frame,ul_x,ul_y)
-        qp.drawPixmap(ul_x,ul_y,self.spinnerImages[frame])
+        self.spinnerFrame = frame
+        #self.repaint()
+#        qp = QPainter(self.label.pixmap())
+#        ul_x = (self.canvasWidth//2) - (347 // 2)
+#        ul_y = (self.canvasHeight//2) - (111 // 2)
+#        print("Spinner Frame:",frame,ul_x,ul_y)
+#
+#        qp.begin(self)
+#        qp.drawPixmap(ul_x,ul_y,self.spinnerImages[frame])
+#        qp.end()
 
     #Draw Circles
     def DrawColor (self,inColor,inPartType):
@@ -437,10 +497,14 @@ class MainWindow(QMainWindow):
         return(overlap)
 
     def DrawCircle(self,ix,iy,iradius,icolor):
-        qp = QPainter(self.label.pixmap())
-        qp.setPen(QPen(Qt.blue, 5))
-        qp.drawEllipse(ix,iy, iradius//2, iradius//2)
-        #fillStyle = self.curColorRGB[icolor];
+        print("Draw Circle")
+        self.canvas.SetupDrawDot(ix,iy,iradius,0)
+
+        #qp = QPainter(self.label.pixmap())
+        #self.qp.begin(self)
+        #self.qp.setPen(QPen(Qt.blue, 5))
+        #self.qp.drawEllipse(ix,iy, iradius//2, iradius//2)
+        ##fillStyle = self.curColorRGB[icolor];
         #c.beginPath();
         #c.arc(ix,iy,iradius,0,2*Math.PI,true);
         #c.closePath();
