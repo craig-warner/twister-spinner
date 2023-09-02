@@ -69,7 +69,6 @@ class CanvasWidget(QWidget):
         self.setGeometry(QRect(0, 0, width, height))
         self.parent = parent
 
-
         self.label = QtWidgets.QLabel()
         self.cvs = QPixmap(width, height)
         self.cvs.fill(Qt.black)
@@ -81,12 +80,17 @@ class CanvasWidget(QWidget):
         self.dot_radius = 0
 
     def paintEvent(self, e):
-        #qp = QPainter(self.label.pixmap())
+        qp_pm = QPainter(self.label.pixmap())
+        qp_pm.setPen(QPen(Qt.blue, 5))
+        qp_pm.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
+        qp_pm.drawEllipse(self.dot_y,self.dot_x,self.dot_radius//2, self.dot_radius//2)
         qp = QPainter()
+        #qp.begin(self.cvs)
         qp.begin(self)
         if self.drawDot:
-            qp.setPen(QPen(Qt.blue, 5))
-            qp.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
+            qp.drawPixmap(0,0,self.cvs)
+#            qp.setPen(QPen(Qt.blue, 5))
+#            qp.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
             self.drawDot = False
 
     def mousePressEvent(self,event):
