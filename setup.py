@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="mandelbrot-background", #
+    name="twister-spinner", #
     version="1.0.0",
     author="Craig Warner",
     author_email="cgwarner2014@gmail.com",
@@ -23,11 +23,7 @@ setuptools.setup(
     python_requires='>=3.6',
     #install_requires=['PyQt5>=5.8.0','hjson>=3.1.0','jsonformatter>=0.3.2','argparse>=1.4.0'],
     install_requires=['hjson>=3.1.0','jsonformatter>=0.3.2','argparse>=1.4.0'],
-    scripts=['bin/mandelbrot-background',
-            "bin/bmp.py",
-            "bin/desktop.py",
-            "bin/mimage.py",
-            "bin/version.py",
-            "bin/tplate.py"
+    scripts=['bin/twister-spinner',
+            "bin/version.py"
             ],
 )
