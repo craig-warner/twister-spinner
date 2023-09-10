@@ -69,7 +69,7 @@ class CanvasWidget(QWidget):
         self.setGeometry(QRect(0, 0, width, height))
         self.parent = parent
 
-        self.label = QtWidgets.QLabel()
+        self.label = QLabel()
         self.cvs = QPixmap(width, height)
         self.cvs.fill(Qt.black)
         self.label.setPixmap(self.cvs)
@@ -79,19 +79,40 @@ class CanvasWidget(QWidget):
         self.dot_y = 0
         self.dot_radius = 0
 
+        self.place_x =0
+
+        #print("Draw Dot")
+        #self.SetupDrawDot(10,10,20,0)
+        #print("Back from Draw Dot")
+        
+        # Banner Image
+        imgFileName = topPath+"/images/banner/touchtostart.png"
+        self.bannerImage = QPixmap(imgFileName)
+
+
+
     def paintEvent(self, e):
-        qp_pm = QPainter(self.label.pixmap())
-        qp_pm.setPen(QPen(Qt.blue, 5))
-        qp_pm.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
-        qp_pm.drawEllipse(self.dot_y,self.dot_x,self.dot_radius//2, self.dot_radius//2)
+        print("Paint")
+#        qp_pm = QPainter(self.label.pixmap())
+        #qp_pm.setPen(QPen(Qt.blue, 5))
+        #qp_pm.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
+        #qp_pm.drawEllipse(self.dot_y,self.dot_x,self.dot_radius//2, self.dot_radius//2)
+#        qp = QPainter(self.)
         qp = QPainter()
-        #qp.begin(self.cvs)
         qp.begin(self)
-        if self.drawDot:
-            qp.drawPixmap(0,0,self.cvs)
+        qp.drawPixmap(0,0,self.cvs)
+#        qp.drawPixmap(self.place_x,0,self.bannerImage)
+        qp.end()
+        self.place_x =  self.place_x +10 
+        #qp.begin(self.cvs)
+#        qp.begin(self)
+#        if self.drawDot:
+#        qp.drawPixmap(0,0,self.cvs)
+#        qp.end()
+
 #            qp.setPen(QPen(Qt.blue, 5))
 #            qp.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
-            self.drawDot = False
+#            self.drawDot = False
 
     def mousePressEvent(self,event):
         self.point_set_x = event.pos().x()
@@ -99,14 +120,24 @@ class CanvasWidget(QWidget):
         if(args.verbose):
             print("x: %d y: %d " % (self.point_seta,self.point_set_y))
         self.repaint()
+        #self.update()
 
     def SetupDrawDot(self,x,y,radius,color):
         self.drawDot = True
         self.dot_x = x 
         self.dot_y = y 
         self.dot_radius = radius 
-        self.dot_colot = color 
+        self.dot_color = color 
+        #qp_pm = QPainter(self.label.pixmap())
+        #qp_pm = QPainter(self.label)
+        #qp_pm.begin(self)
+        qp_pm = QPainter(self.cvs)
+        qp_pm.setPen(QPen(Qt.blue, 5))
+        qp_pm.drawEllipse(self.dot_x,self.dot_y,self.dot_radius//2, self.dot_radius//2)
+        print("Draw Ellipse:",self.dot_x,":",self.dot_radius)
+        qp_pm.end()
         self.repaint()
+#        self.update()
 
 
 class AboutDialog(QDialog):
@@ -706,7 +737,7 @@ class MainWindow(QMainWindow):
     #};
 
     def DoTick(self):
-        print("Tick")
+        print("Tick", self.iTick)
         if self.mode == Mode.Banner:
             if(self.iTick == 0):
                 self.ClearCanvas(); 
