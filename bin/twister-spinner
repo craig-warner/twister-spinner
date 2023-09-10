@@ -79,6 +79,8 @@ class CanvasWidget(QWidget):
         self.dot_y = 0
         self.dot_radius = 0
 
+        self.mouseClick = False
+
         self.partImages = []
         parts = ['left_foot','left_hand','right_foot','right_hand']
         if args.verbose:
@@ -95,6 +97,8 @@ class CanvasWidget(QWidget):
         imgFileName = topPath+"/images/banner/touchtostart.png"
         self.bannerImage = QPixmap(imgFileName)
 
+
+
     def paintEvent(self, e):
         #print("Paint")
         qp = QPainter()
@@ -103,12 +107,7 @@ class CanvasWidget(QWidget):
         qp.end()
 
     def mousePressEvent(self,event):
-        self.point_set_x = event.pos().x()
-        self.point_set_y = event.pos().y()
-        if(args.verbose):
-            print("x: %d y: %d " % (self.point_seta,self.point_set_y))
-        self.repaint()
-        #self.update()
+        self.mouseClick = True
 
     def DrawDotCanvas(self,x,y,radius,color):
         self.drawDot = True
@@ -156,6 +155,12 @@ class CanvasWidget(QWidget):
     def ClearCanvas(self):
         self.cvs.fill(Qt.black)
 
+    def IsMouseClick(self):
+        if(self.mouseClick):
+            self.mouseClick = False
+            return(True)
+        else:
+            return(False)
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -236,7 +241,7 @@ class MainWindow(QMainWindow):
        # Dots
         self.numDots = 0
        # Sounds
-        self.soundOn = True,
+        self.soundOn = True
 
         # Init Images
         #self.loadImages(topPath)
@@ -342,7 +347,6 @@ class MainWindow(QMainWindow):
         self.iTick = 0
         if(args.verbose):
             print("Play")
-        play(self.partSounds[0])
 
     def doSettings(self):
         if(args.verbose):
@@ -405,7 +409,7 @@ class MainWindow(QMainWindow):
         elif(provocation):
             self.worker.Setup(self.colorSound[provocationNum])
         else:
-            print("Error: Boad Sound")
+            print("Error: Load Sound")
             exit(1)
         # Connect signals and slots
         self.thread.started.connect(self.worker.run)
@@ -455,29 +459,6 @@ class MainWindow(QMainWindow):
 
     def CalcTopForMiddle(self,inHeight):
         return ((self.canvasHeight // 2) - (inHeight//2))
-
-#    def paintEvent(self, event):    
-#        print("Paint Event")
-        #qp = QPainter()
-        #qp = QPainter(self.label.pixmap())
-        #qp = QPainter(self.label.pixmap())
-        #qp.begin(self)
-        #ix = self.iTick +20
-        #iy = 40 
-        #iradius = 20 
-        #qp.setPen(QPen(Qt.blue, 5))
-        #qp.drawEllipse(ix,iy, iradius//2, iradius//2)
-#        qp = QPainter(self.label.pixmap())
-        #ul_x = (self.canvasWidth//2) - (347 // 2)
-        #ul_y = (self.canvasHeight//2) - (111 // 2)
-        #print("Spinner Frame:",self.spinnerFrame,ul_x,ul_y)
-
-#        qp.begin(self)
-#        qp.drawPixmap(ul_x,ul_y,self.spinnerImages[self.spinnerFrame])
-        #self.label.setPixmap(self.canvas)
-        #self.label.drawPixmap(ul_x,ul_y,self.spinnerImages[2])
-#        qp.end()
-
 
     def DrawSpinnerFrame(self,frame):
         self.spinnerFrame = frame
@@ -543,38 +524,9 @@ class MainWindow(QMainWindow):
         # pick a part
         self.curPart = random.randrange(0,2)
         # pick a color
-        self.curColor = random.randrane(0,4)
-        # Calc Part Type 
-        self.curPartType = self.curPart*2 + self.curSide
-
-    def SelectDelay(self):
-        # pick a delay
-        rnd = random.randrange(self.minTicksBetweenSpins,self.maxTicksBetweenSpins)
-        self.curTicksOfDelay = rnd 
-
-    def SelectProvocation(self):
-        # pick a delay
-        if(self.enableProvocations == False):
-            self.curProvocation = False
-        else:
-            rnd = random.randrange(0,100)
-            if(rnd < self.provocationFrequency):
-                self.curProvocation = True
-            else:
-                self.curProvocation = False
-
-    # 
-    # Spin Functions
-    # 
-    def SelectSidePartColor(self):
-        # pick a side
-        self.curSide = random.randrange(0,2)
-        # pick a part
-        self.curPart = random.randrange(0,2)
-        # pick a color
         self.curColor = random.randrange(0,4)
         # Calc Part Type 
-        self.curPartType = self.curPart*2 + self.curSide
+        self.curPartType = self.curSide*2 + self.curPart
 
     def SelectDelay(self):
         # pick a delay
@@ -610,44 +562,35 @@ class MainWindow(QMainWindow):
         #var c = spin.canvas.getContext('2d');
 
         self.canvas.DrawPartCanvas(inNum,curX,curY,curWidth,curHeight)
-        #if inNum == 0:
-        #    self.canvas.DrawPartCanvas(self.leftHandImage,curX,curY,curWidth,curHeight)
-        #elif(inNum == 1):
-        #    self.canvas.DrawPartCanvas(self.rightHandImage,curX,curY,curWidth,curHeight)
-        #elif(inNum == 2):
-        #    self.canvas.DrawPartCanvas(self.leftFootImage,curX,curY,curWidth,curHeight)
-        #elif(inNum == 3):
-        #    self.canvas.DrawPartCanvas(self.rightFootImage,curX,curY,curWidth,curHeight)
     #//
     #// Say Functions
     #//
     def SayLeft(self):
        if self.soundOn == True:
-            # Fixme
-            play(self.leftSound)
+            play(self.sideSounds[0])
 
     def SayRight(self):
        if self.soundOn == True:
-            play (self.rightSound)
+            play (self.sideSounds[1])
 
     def SayHand(self):
        if self.soundOn == True:
-            play(self.handSound)
+            play(self.partSounds[1])
     def SayFoot(self):
        if self.soundOn == True:
-            play(self.footSound)
+            play(self.partSounds[0])
     def SayRed(self):
        if(self.soundOn == True):
-            play(self.redSound)
+            play(self.colorSounds[2])
     def SayBlue(self):
        if(self.soundOn == True):
-            play(self.blueSound)
+            play(self.colorSounds[0])
     def SayGreen(self):
        if(self.soundOn == True):
-            play(self.greenSound)
+            play(self.colorSounds[1])
     def SayYellow(self):
        if(self.soundOn == True):
-            play(self.yellowSound)
+            play(self.colorSounds[3])
     def SaySide(self,inSide):
         if(inSide == 0):
             self.SayLeft()
@@ -659,12 +602,13 @@ class MainWindow(QMainWindow):
         else:
             self.SayFoot()
     def SayColor(self,inColor):
+        print("Say Color:",inColor)
         if(inColor == 0):
-            self.SayRed()
-        elif(inColor == 1):
             self.SayBlue()
-        elif(inColor == 2):
+        elif(inColor == 1):
             self.SayGreen()
+        elif(inColor == 2):
+            self.SayRed()
         elif(inColor == 3):
             self.SayYellow()
     #//
@@ -729,7 +673,13 @@ class MainWindow(QMainWindow):
 
     def DoTick(self):
         #print("Tick", self.iTick)
-        if self.mode == Mode.Banner:
+        if self.canvas.IsMouseClick():
+            self.iTick = 0
+            if self.mode == Mode.Banner:
+                self.mode = Mode.Play
+            else:
+                self.mode = Mode.Banner
+        elif self.mode == Mode.Banner:
             if(self.iTick == 0):
                 self.ClearCanvas(); 
                 # Touch Screen to Start
