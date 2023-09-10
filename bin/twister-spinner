@@ -181,11 +181,11 @@ class AboutDialog(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
-class SettingDialog(QDialog):
-    def __init__(self,win_text,msg_text):
+class SettingsDialog(QDialog):
+    def __init__(self):
         super().__init__()
 
-        self.setWindowTitle(win_text)
+        self.setWindowTitle("Twister Spinner Settings")
 
         QBtn = QDialogButtonBox.Ok 
 
@@ -193,8 +193,6 @@ class SettingDialog(QDialog):
         self.buttonBox.accepted.connect(self.accept)
 
         self.layout = QVBoxLayout()
-        message = QLabel(msg_text)
-        self.layout.addWidget(message)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
@@ -329,7 +327,7 @@ class MainWindow(QMainWindow):
         menu = self.menuBar()
         file_menu = menu.addMenu("&File")
         file_menu.addAction(self.playAction)
-        file_menu.addAction(self.settingsAction)
+#        file_menu.addAction(self.settingsAction)
         file_menu.addSeparator()
         file_menu.addAction(self.exitAppAction)
 
@@ -337,7 +335,7 @@ class MainWindow(QMainWindow):
         help_menu.addAction(self.aboutAction)
 
         self.playAction.triggered.connect(self.doPlay)
-        self.settingsAction.triggered.connect(self.doSettings)
+#        self.settingsAction.triggered.connect(self.doSettings)
         self.exitAppAction.triggered.connect(self.doExitApp)
         self.aboutAction.triggered.connect(self.doAbout)
 
@@ -351,6 +349,8 @@ class MainWindow(QMainWindow):
     def doSettings(self):
         if(args.verbose):
             print("Settings")
+        dlg = SettingsDialog(self)
+        dlg.exec()
 
     def doExitApp(self):
         if(args.verbose):
