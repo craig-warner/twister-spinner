@@ -22,7 +22,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     #install_requires=['PyQt5>=5.8.0','hjson>=3.1.0','jsonformatter>=0.3.2','argparse>=1.4.0'],
-    install_requires=['hjson>=3.1.0','jsonformatter>=0.3.2','argparse>=1.4.0'],
+    install_requires=['argparse>=1.4.0'],
     scripts=['bin/twister-spinner',
             "bin/version.py"
             ],
