@@ -13,7 +13,7 @@ setuptools.setup(
     description="Twwister Spinner",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/craig-warner/MandelbrotBackground",
+    url="https://github.com/craig-warner/twister-spinner",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -21,7 +21,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    #install_requires=['PyQt5>=5.8.0','hjson>=3.1.0','jsonformatter>=0.3.2','argparse>=1.4.0'],
     install_requires=['argparse>=1.4.0'],
     scripts=['bin/twister-spinner',
             "bin/version.py"

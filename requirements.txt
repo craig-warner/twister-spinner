@@ -1,3 +1,2 @@
-hjson
 pyqt5
 argparse
