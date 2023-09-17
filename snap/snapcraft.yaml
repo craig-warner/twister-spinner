@@ -90,7 +90,7 @@ parts:
 
 apps:
   twister-spinner:
-    command: desktop-launch $SNAP/bin/twister-spinner
+    command: bin/desktop-launch $SNAP/bin/twister-spinner
     environment:
       DISABLE_WAYLAND: 1
     plugs: ['desktop', 'framebuffer', 'camera', 'network', 'home', 'opengl', 'x11','desktop-legacy']

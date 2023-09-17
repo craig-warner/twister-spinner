@@ -13,7 +13,7 @@ import os
 import platform
 import sys
 import argparse
-import hjson
+#import hjson
 import time
 import random 
 
@@ -64,7 +64,7 @@ class Worker(QObject):
 class CanvasWidget(QWidget):
     def __init__(self,parent,width,height):
         super(CanvasWidget, self).__init__(parent)
-        if args.verbose:
+        if verbose:
             print("Canvas Widget")
         self.setGeometry(QRect(0, 0, width, height))
         self.parent = parent
@@ -83,7 +83,7 @@ class CanvasWidget(QWidget):
 
         self.partImages = []
         parts = ['left_foot','left_hand','right_foot','right_hand']
-        if args.verbose:
+        if verbose:
             print("Loading Images...")
         for pname in parts:
             imgFileName = topPath+"/images/parts/white_"+pname+".png"
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
     def loadImages(self,topPath):
         self.partImages = []
         parts = ['left_foot','left_hand','right_foot','right_hand']
-        if args.verbose:
+        if verbose:
             print("Loading Images...")
         for pname in parts:
             imgFileName = topPath+"/images/parts/white_"+pname+".png"
@@ -273,7 +273,7 @@ class MainWindow(QMainWindow):
 
     def loadSounds(self,topPath):
         # side sounds
-        if args.verbose:
+        if verbose:
             print("Loading Sounds...")
         sides = ['left','right']
         self.sideSounds = []
@@ -343,22 +343,22 @@ class MainWindow(QMainWindow):
         global template
         self.mode = Mode.Play
         self.iTick = 0
-        if(args.verbose):
+        if(verbose):
             print("Play")
 
     def doSettings(self):
-        if(args.verbose):
+        if(verbose):
             print("Settings")
         dlg = SettingsDialog(self)
         dlg.exec()
 
     def doExitApp(self):
-        if(args.verbose):
+        if(verbose):
             print("Exit")
         exit(0)
 
     def doAbout(self):
-        if(args.verbose):
+        if(verbose):
            print("About")
         dlg = AboutDialog(self)
         dlg.exec()
@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
         self.thread.finished.connect(self.thread.deleteLater)
         # Start the thread
         self.thread.start()
-        if args.verbose:
+        if verbose:
             print("Thread Started")
 
     def initArt(self):
@@ -427,7 +427,7 @@ class MainWindow(QMainWindow):
         self.curColorRGB = ["rgb(248,9,43)", "rgb(9,19,248)", "rgb(14,248,9)", "rgb(228,248,9)"]
 
     def ClearCanvas(self):
-        if args.verbose:
+        if verbose:
             print("Clear Canvas")
         self.canvas.ClearCanvas()
 
@@ -694,7 +694,7 @@ class MainWindow(QMainWindow):
             self.iTick=self.iTick+1
             if(self.iTick >= (48*20)):
                 self.iTick = 0
-            if args.verbose: 
+            if verbose: 
                 print("Intro Tick")
         else:
             if self.iTick == 0:
@@ -752,19 +752,21 @@ parser.add_argument("--nogui", help="No Graphical User Interface",action ="store
 parser.add_argument('-V', '--version', action='version', version="%(prog)s ("+__version__+")")
 args = parser.parse_args()
 
+verbose = True
+
 # Gui or Not
 if(args.nogui):
     playTwister()
 else:
     app = QApplication(sys.argv)
     screen = app.primaryScreen()
-    if args.verbose:
+    if verbose:
         print('Screen: %s' % screen.name())
     size = screen.size()
-    if args.verbose:
+    if verbose:
         print('Size: %d x %d' % (size.width(), size.height()))
     rect = screen.availableGeometry()
-    if args.verbose:
+    if verbose:
         print('Available: %d x %d' % (rect.width(), rect.height()))
     w = MainWindow(topPath,rect.width(),rect.height())
     w.show()

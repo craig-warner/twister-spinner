@@ -10,7 +10,7 @@ setuptools.setup(
     version="1.0.0",
     author="Craig Warner",
     author_email="cgwarner2014@gmail.com",
-    description="Twwister Spinner",
+    description="Twister Spinner",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/craig-warner/twister-spinner",
