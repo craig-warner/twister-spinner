@@ -742,7 +742,7 @@ def playTwister():
 # mbg Start
 #
 #topPath = "/home/craigwarner/Programming/tv2/twister-spinner"
-topPath = "/snap/twister-spinner/current"
+topPath = "/snap/twister-spinner/current/"
 all_images = []
 
 # CLI Parser

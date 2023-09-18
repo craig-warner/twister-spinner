@@ -4,7 +4,6 @@ summary: Twister Spinner
 description: |
   Allows you to play Twister with just two people
 confinement: strict 
-#confinement: devmode 
 base: core18
 grade: stable
 icon: snap/gui/twister-spinner.png
@@ -34,63 +33,32 @@ parts:
       - locales-all
       - xdg-user-dirs
       - ffmpeg
-
   mainapp:
     after: [desktop-qt5]
     plugin: python
     python-version: python3
-    source-type: local 
+    source-type: local
     source: . 
+#    requirements: requirements.txt
     stage-packages:
     - python-six
     - python3-pyqt5
     - python3-pydub
-   
   images:
     after: [mainapp]
     plugin: dump 
     source: images 
     organize: 
       '*': images/
-
-#  images2:
-#    after: [mainapp]
-#    plugin: dump 
-#    source: images/banner
-#    organize: 
-#      '*': images/banner/
-
-#  images3:
-#    after: [mainapp]
-#    plugin: dump 
-#    source: images/parts
-#    organize: 
-#      '*': images/parts/
-
-#  images4:
-#    after: [mainapp]
-#    plugin: dump 
-#    source: images/spinner
-#    organize: 
-#      '*': images/spinner/
-
   audio:
     after: [mainapp]
     plugin: dump 
     source: audio 
     organize: 
       '*': audio/
-
-#  audio2:
-#    after: [mainapp]
-#    plugin: dump 
-#    source: audio/provocations 
-#    organize: 
-#      '*': audio/provocations/
-
 apps:
   twister-spinner:
-    command: bin/desktop-launch $SNAP/bin/twister-spinner
+    command: desktop-launch $SNAP/bin/twister-spinner
     environment:
       DISABLE_WAYLAND: 1
     plugs: ['desktop', 'framebuffer', 'camera', 'network', 'home', 'opengl', 'x11','desktop-legacy']
