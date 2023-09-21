@@ -33,6 +33,7 @@ parts:
       - locales-all
       - xdg-user-dirs
       - ffmpeg
+      - libslang2
   mainapp:
     after: [desktop-qt5]
     plugin: python
