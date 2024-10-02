@@ -1,10 +1,10 @@
 name: twister-spinner
-version: '1.0'
+version: '1.1'
 summary: Twister Spinner
 description: |
   Allows you to play Twister with just two people
 confinement: strict 
-base: core18
+base: core20
 grade: stable
 icon: snap/gui/twister-spinner.png
 
